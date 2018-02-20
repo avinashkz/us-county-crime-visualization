@@ -1,0 +1,55 @@
+---
+title: "Wrangle"
+author: "Avinash"
+date: '2018-02-20'
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+library(tidyr)
+
+library(dplyr)
+library(forcats)
+library(purrr)
+
+```
+
+```{r}
+
+cleaner <- function(df,x,y){
+
+data <- readxl::read_xls(paste("../data/",df ,".xls",sep = ""))
+
+data_1 <- data[x:(nrow(data) - y),]
+
+df_2016_1 <- df_2016 %>% separate(State, into = c("State", "Type"))
+
+names(df_2016_1) <- c("State", "Type", "County", "Violent-crime", "Homicide", "Rape-revised", "Rape-legacy", "Robbery", "Aggravated.assault", "Property.crime", "Burglary", "Larceny", "Motor.vehicle.theft", "Arson")
+
+for (i in 1:nrow(df_2016_1)){
+  
+if(df_2016_1[i,1] == ""){
+  df_2016_1[i,1] <-  df_2016_1[i-1,1]
+}
+if(is.na(df_2016_1[i,2])){
+  df_2016_1[i,2] <-  df_2016_1[i-1,2]
+}
+}
+
+df_2016_1$State <- stringi::stri_trans_totitle(df_2016_1$State)
+
+df_2016_1 <- df_2016_1 %>% rowwise() %>% mutate(Rape = sum(`Rape-revised`,`Rape-legacy`, na.rm = TRUE))
+
+df_2016_2 <- df_2016_1 %>% select(c(1:5, 8:15))
+
+return(df_2016_2)
+}
+
+
+cleaner(2016, 5, 9)
+
+```
+

@@ -8,12 +8,13 @@ output: pdf_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
 ```{r}
 library(tidyr)
-
 library(dplyr)
 library(forcats)
 library(purrr)
+library(feather)
 
 ```
 
@@ -23,17 +24,20 @@ library(purrr)
 
 cleaner <- function(year,x,y){
 
+#df <- readxl::read_xls("../data/2016.xls")
 df <- readxl::read_xls(paste("../data/",year ,".xls",sep = ""))
 
+#df <- df[5:(nrow(df) - 9),]
 df <- df[x:(nrow(df) - y),]
+
+names(df) <- c("State", "County", "ViolentCrime", "Homicide", "RapeRevised", "RapeLegacy", "Robbery", "AggravatedAssault", "PropertyCrime", "Burglary", "Larceny", "MotorVehicleTheft", "Arson")
 
 df_1 <- df %>% separate(State, into = c("State", "Type"))
 
-names(df_1) <- c("State", "Type", "County", "Violent-crime", "Homicide", "Rape-revised", "Rape-legacy", "Robbery", "Aggravated.assault", "Property.crime", "Burglary", "Larceny", "Motor.vehicle.theft", "Arson")
 
 for (i in 1:nrow(df_1)){
   
-if(df_1[i,1] == ""){
+if(is.na(df_1[i,1])){
   df_1[i,1] <-  df_1[i-1,1]
 }
 if(is.na(df_1[i,2])){
@@ -43,14 +47,24 @@ if(is.na(df_1[i,2])){
 
 df_1$State <- stringi::stri_trans_totitle(df_1$State)
 
-df_1 <- df_1 %>% rowwise() %>% mutate(Rape = sum(`Rape-revised`,`Rape-legacy`, na.rm = TRUE))
+df_1 <- df_1 %>% rowwise() %>% mutate(Rape = sum(as.numeric(RapeRevised),as.numeric(RapeLegacy), na.rm = TRUE))
 
 df_2 <- df_1 %>% select(c(1:5, 8:15))
 
 return(df_2)
 }
 
-cleaner(2016, 5, 9)
+data <- cleaner(2016, 5, 9)
+
+#write.csv(data, "../results/2016.csv")
+feather::write_feather(data, "../results/2016.feather")
+
+```
+
+
+```{r}
+data %>% group_by(State) %>% summarise()
+data %>% group_by(County) %>% summarise()
 
 ```
 

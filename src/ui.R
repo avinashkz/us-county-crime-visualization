@@ -9,20 +9,35 @@
 library(shiny)
 library(markdown)
 library(DT)
+library(plotly)
 
 navbarPage("US Crime Visualization",
            tabPanel("States",
                     sidebarLayout(
                       sidebarPanel(
-                        uiOutput("stateyear"),
+                        uiOutput("year"),
+
+                        sliderInput("slider", h3("Filter Year", id = "myh3"),
+                                    min = 1995, max = 2017, value = c(2014, 2016), sep = ""),
+                        
+                        uiOutput("cities"),
+                        
                         radioButtons("radio", h3("Select Feature", id = "myh3"),
-                                     choices = list( "Total Crimes" = "violent","Total Population" = "pop","Rape" = "rape",
+                                     choices = list( "Total Crimes" = "violent","Rape" = "rape",
                                                      "Assault" = "assault", "Homicide" = "homicide", "Robbery" = "robbery"),selected = "violent"),
-                        uiOutput("states")
+                        
+                        
+                        # Extra options for user.
+                        checkboxGroupInput("checkGroup", 
+                                           h3("Extra Options", id = "myh3"), 
+                                           choices = c("Crime Per 100k" = 1, 
+                                                       "Remove Legend" = 2),
+                                           selected = c())
                         
                       ),
                       mainPanel(
-                        plotOutput("plot")
+                        plotlyOutput("geoPlot"),
+                        plotlyOutput("linePlot2")
                       )
                     )
            ),
@@ -31,7 +46,7 @@ navbarPage("US Crime Visualization",
            ),
            navbarMenu("More",
                       tabPanel("Table",
-                               DT::dataTableOutput("table")
+                               DT::dataTableOutput("mytable")
                       ),
                       tabPanel("About"
                       )

@@ -15,6 +15,11 @@ navbarPage("US Crime Visualization",
            tabPanel("States",
                     sidebarLayout(
                       sidebarPanel(
+                        
+                        tags$style(type="text/css",
+                                   ".shiny-output-error { visibility: hidden; }",
+                                   ".shiny-output-error:before { visibility: hidden; }"
+                        ),
                         uiOutput("year"),
 
                         sliderInput("slider", h3("Filter Year", id = "myh3"),
@@ -30,14 +35,14 @@ navbarPage("US Crime Visualization",
                         # Extra options for user.
                         checkboxGroupInput("checkGroup", 
                                            h3("Extra Options", id = "myh3"), 
-                                           choices = c("Crime Per 100k" = 1, 
-                                                       "Remove Legend" = 2),
+                                           choices = c("Remove Legend" = 1),
                                            selected = c())
                         
                       ),
                       mainPanel(
                         plotlyOutput("geoPlot"),
-                        plotlyOutput("linePlot2")
+                        plotlyOutput("linePlot2"),
+                        leafletOutput("countyplot")
                       )
                     )
            ),

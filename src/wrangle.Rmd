@@ -1,0 +1,170 @@
+---
+title: "Wrangle"
+author: "Avinash"
+date: '2018-02-20'
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyr)
+library(dplyr)
+library(forcats)
+library(purrr)
+library(feather)
+library(plotly)
+```
+
+```{r}
+
+#https://ucr.fbi.gov/ucr-publications
+
+cleaner <- function(year){
+
+#df <- readxl::read_xls("../data/2016.xls")
+print(paste("../data/csv/",year ,".csv",sep = ""))
+df <- read.csv(paste("../data/csv/",year ,".csv",sep = ""), header = FALSE)
+
+names(df) <- c("region", "city", "violent_crime", "homs_sum", "RapeRevised", "RapeLegacy", "rob_sum", "agg_ass_sum", "PropertyCrime", "Burglary", "Larceny", "MotorVehicleTheft", "Arson")
+
+df_1 <- df %>% separate(region, into = c("region", "type"), sep = " - ")
+
+
+for (i in 1:nrow(df_1)){
+if(df_1[i,1] == ""){
+  df_1[i,1] <-  df_1[i-1,1]
+}
+if(is.na(df_1[i,2])){
+  df_1[i,2] <-  df_1[i-1,2]
+}}
+
+df_1$region <- stringi::stri_trans_totitle(df_1$region)
+
+df_1 <- df_1 %>% rowwise() %>% mutate(rape_sum = sum(as.numeric(RapeRevised),as.numeric(RapeLegacy), na.rm = TRUE))
+
+df_2 <- df_1 %>% select(c(1:5, 8:15))
+
+df_2 <- df_2 %>% mutate(year = year)
+
+feather::write_feather(df_2, paste("../results/", year, ".feather", sep = ""))
+
+return(df_2)
+}
+
+d16 <- cleaner(2016)
+d15 <- cleaner(2015)
+d14 <- cleaner(2014)
+
+crime <- rbind(d16,d15,d14)
+
+codes <- read.csv(file ="../results/codes.csv")
+
+# codes <- codes %>% mutate(region = as.character(region))
+
+crime <- left_join(crime, codes)
+
+feather::write_feather(crime, "../results/crime.feather")
+
+
+```
+
+
+```{r}
+data %>% group_by(State) %>% summarise()
+data <- data %>% select(State, County, ViolentCrime)
+crime %>% group_by(code) %>% summarise()
+
+
+codes
+```
+
+```{r}
+df <- read.csv("../data/csv/2016.csv",header = FALSE )
+
+df %>% group_by(V1) %>%  summarise()
+
+
+d16 %>% group_by(State) %>% summarise()
+
+
+d16 %>% filter(State == "New")
+
+new <- crime %>% group_by(State) %>% summarise() %>% as_vector()
+name
+```
+
+
+```{r}
+blank_layer <- list(
+  title = "",
+  showgrid = F,
+  showticklabels = F,
+  zeroline = F)
+
+p <- map_data("county") %>%
+  group_by(group) %>%
+  plot_ly(
+    x = ~long,
+    y = ~lat,
+    fillcolor = 'white',
+    hoverinfo = "none") %>%
+  add_polygons(
+    line = list(color = 'black', width = 0.5)) %>%
+  layout(
+    xaxis = blank_layer,
+    yaxis = blank_layer)
+
+
+p
+```
+```{r}
+df <- read.csv("https://raw.githubusercontent.com/bcdunbar/datasets/master/californiaPopulation.csv")
+
+county <- map_data("county")
+
+pop <- df %>%
+  group_by(County.Name) %>%
+  summarise(Pop = sum(Population))
+
+county
+data
+
+county <- county %>% mutate(region = stringi::stri_trans_totitle(region))
+
+county <- county %>% mutate(subregion = stringi::stri_trans_totitle(subregion))
+county_pop <- merge(county, data, by.x = "subregion", by.y = "County")
+
+county_pop
+
+cali_pop$pop_cat <- cut(cali_pop$Pop, breaks = c(seq(0, 11000000, by = 500000)), labels=1:22)
+```
+
+```{r}
+geo <- list(
+  scope = 'usa',
+  showland = TRUE,
+  landcolor = toRGB("gray95"),
+  countrycolor = toRGB("gray80")
+)
+
+p <- county_pop %>%
+  group_by(group) %>%
+  plot_geo(
+    x = ~long, y = ~lat, color = ~ViolentCrime, colors = c('#ffeda0','#f03b20'),
+    text = ~subregion, hoverinfo = 'text') %>%
+  add_polygons(line = list(width = 0.4)) %>%
+  add_polygons(
+    fillcolor = 'transparent',
+    line = list(color = 'black', width = 0.5),
+    showlegend = FALSE, hoverinfo = 'none'
+  ) %>%
+  layout(
+    title = "California Population by County",
+    geo = geo)
+
+p
+```
+

@@ -22,7 +22,7 @@ shinyServer(function(input, output) {
     my_colors <- c('#008d4a', '#ffc300', '#FD850E', '#e31a1c', '#5D11A9', '#1131A9')
     
     if(input$radio == "violent") {
-      xtitle = "Crime in Thousands"
+      xtitle = "Number of Crimes"
       title = "Violent Crimes"
       q = "violent"
       color = my_colors[1]
@@ -34,7 +34,7 @@ shinyServer(function(input, output) {
       color = my_colors[2]
     }
     else if(input$radio == "assault") {
-      xtitle = "Assaults in Thousands"
+      xtitle = "Number of Assaults"
       title = "Assault"
       q = "assault"
       color = my_colors[4]
@@ -46,7 +46,7 @@ shinyServer(function(input, output) {
       color = my_colors[5]
     }
     else if(input$radio == "robbery") {
-      xtitle = "Robberies in Thousands"
+      xtitle = "Number of Robberies"
       title = "Robbery"
       q = "robbery"
       color = my_colors[6]

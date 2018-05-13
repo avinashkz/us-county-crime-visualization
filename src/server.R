@@ -17,35 +17,35 @@ shinyServer(function(input, output) {
     #Switching the y-axis of scatter and line plot
     
     if(input$radio == "violent") {
-      xtitle <- "Number of Violent Crimes"
+      xtitle <- "Violent Crimes"
       title <- "Violent Crime Trend In"
       y <- "violent_crime"
       q <- "violent"
       color <- 1
     }
     else if(input$radio == "rape") {
-      xtitle <- "Number of Rapes"
+      xtitle <- "Rapes"
       title <- "Rape Trend In"
       y <- "rape_sum"
       q <- "rape"
       color <- 2
     }
     else if(input$radio == "assault") {
-      xtitle <- "Number of Assaults"
+      xtitle <- "Assaults"
       title <- "Assault Trend In"
       y <- "agg_ass_sum"
       q <- "assault"
       color <- 4
     }
     else if(input$radio == "homicide") {
-      xtitle <- "Number of Homicides"
+      xtitle <- "Homicides"
       title <- "Homicide Trend In"
       y <- "homs_sum"
       q <- "homicide"
       color <- 5
     }
     else if(input$radio == "robbery") {
-      xtitle <- "Number of Robberies"
+      xtitle <- "Robberies"
       title <- "Robbery Trend In"
       y <- "rob_sum"
       q <- "robbery"
@@ -56,9 +56,26 @@ shinyServer(function(input, output) {
     
   })
   
+  crime_switch <- reactive({
+    
+    geo_click <- event_data("plotly_click")
+    
+    #To handle error when starting application. No click at start!
+    if (!length(geo_click)) {return(tibble())}
+    
+    x <- geo_data %>% filter(get(input$radio) == geo_click$z)
+    #Fix issue of changing crime type.
+    if(nrow(x)) {global_state <<- x}
+    
+    return(global_state)
+    
+  })
   
-  #Function for geo plot
+  
+
   output$geoPlot <- renderPlotly({
+    
+    #Function for US plotly map
     
     font <- "'Lucida Console', Monaco, monospace"
     f <- list(family = font)
@@ -70,12 +87,12 @@ shinyServer(function(input, output) {
     title <- radio_data[2]
     q <- radio_data[4]
     color <- my_colors[as.numeric(radio_data[5])]
-    observe({print(radio_data[5])})
     
     #Filter the data for plotting the geo map
     geo_data <<- crime %>% filter(year == 2014) %>%  group_by(region, code) %>%
       summarise(rape = sum(rape_sum, na.rm = TRUE), assault = sum(agg_ass_sum, na.rm = TRUE),
-                robbery = sum(rob_sum, na.rm = TRUE), homicide = sum(homs_sum, na.rm = TRUE), violent = sum(violent_crime, na.rm = TRUE))
+                robbery = sum(rob_sum, na.rm = TRUE), homicide = sum(homs_sum, na.rm = TRUE), 
+                violent = sum(violent_crime, na.rm = TRUE))
     
     #Creating column for contents to hover
     geo_data$hover <- with(geo_data, paste(region, '<br>',
@@ -93,7 +110,7 @@ shinyServer(function(input, output) {
       lakecolor = toRGB('white')
     )
     
-    #Plot geo plot using shiny
+    #Plot US map using shiny
     plot1 <- plot_geo(geo_data, locationmode = 'USA-states') %>%
       add_trace(
         z = ~get(q), text = ~hover, locations = ~code,
@@ -107,8 +124,9 @@ shinyServer(function(input, output) {
   })
   
   
-  # Function for line and scatter plot
+
   output$linePlot2 <- renderPlotly({
+    # Function for line and scatter plot
     
     #Reading in the extra option multiple selector input
     a <- !str_detect(paste(input$checkGroup, collapse = ","), "1")
@@ -128,25 +146,24 @@ shinyServer(function(input, output) {
     y <- radio_data[3]
     
     #Detect geo click
-    geo_click <- event_data("plotly_click")
+    x <- crime_switch()
     
     #Readin the input from city selector
     mycities <- input$cityInput
+
     
-    #observe({(print(mycities))})
-    if (length(geo_click) & length(mycities)) {
+    if (nrow(x) & length(mycities)) {
       
-      #observe({print("I am here")})
-      #z is still the old value. Need to automate the new value!
-      x <<- geo_data %>% filter(get(input$radio) == geo_click$z)
-      #observe({print(input$radio)})
+      x <- crime_switch()
+      
       p <- crime %>% 
-        filter(region == x[[1]], year >= input$slider[1], year <= input$slider[2]) %>%
+        filter(region == x$region, year >= input$slider[1], year <= input$slider[2]) %>%
         mutate(city = str_to_title(city)) %>% 
         filter(city %in% mycities) %>% 
         plot_ly(x = ~year, y = ~get(y), type = 'scatter', 
                 mode = m, split = ~city,  text = ~paste("Total Crime In ", city)) %>% 
-        layout(title = ~paste(title, x[[1]]), font = f ,xaxis = list(title = "Years", titlefont = f, tickfont = f),
+        layout(title = ~paste(title, x$region), font = f ,
+               xaxis = list(title = "Years", titlefont = f, tickfont = f),
                yaxis = list(title = xtitle, titlefont = f, tickfont = f),
                legend = list(font = f), showlegend = a)
       
@@ -159,7 +176,6 @@ shinyServer(function(input, output) {
       #            yaxis = list(title = xtitle, titlefont = f, titlefont = f),
       #            legend = list(font = f),showlegend = c)
     } else {
-      #observe({print("I am here too")})
       plot_data <- crime %>% filter(year >= input$slider[1], year <= input$slider[2])  %>%
         group_by(region, year) %>%
         summarise(custom = sum(get(y), na.rm = TRUE))
@@ -167,7 +183,8 @@ shinyServer(function(input, output) {
       plot_data %>% 
         plot_ly(x = ~year, y = ~custom, type = 'scatter', 
                 mode = m, split = ~region,  text = ~paste("Total Crime In ", region)) %>% 
-        layout(title =  ~paste(title, "US"), font = f, xaxis = list(title = "Years", titlefont = f, tickfont = f),
+        layout(title =  ~paste(title, "US"), font = f, 
+               xaxis = list(title = "Years", titlefont = f, tickfont = f),
                yaxis = list(title = xtitle, titlefont = f, titlefont = f),
                legend = list(font = f),showlegend = a)
     }
@@ -181,13 +198,10 @@ shinyServer(function(input, output) {
     title <- radio_data[2]
     y <- radio_data[3]
     
-    geo_click <- event_data("plotly_click")
+    x <- crime_switch()
     
-    if (length(geo_click) ) {
-      
-      #z is still the old value. Need to automate the new value!
-      x <<- geo_data %>% filter(get(input$radio) == geo_click$z)
-      
+    if (nrow(x)) {
+
       custom <- crime %>% filter(year == 2016)
       
       second <- left_join(df, custom, by = c("code", "NAME" = "city"))
@@ -197,7 +211,7 @@ shinyServer(function(input, output) {
       neStates <- subset(leaf_data, leaf_data$code == x$code)
       
       pal <- colorNumeric("viridis", NULL)
-      observe({print(y)})
+      
       leaflet(neStates) %>% addTiles() %>% 
         addPolygons(color = "#444444", weight = 1, smoothFactor = 0.5,
                     opacity = 1.0, fillOpacity = 1,
@@ -205,24 +219,21 @@ shinyServer(function(input, output) {
                     label = ~paste0(city,": ", get(y)),
                     highlightOptions = highlightOptions(color = "white", weight = 2,
                                                         bringToFront = TRUE)) %>% 
-        addLegend(pal = pal, values = ~get(y), title = ~paste0(xtitle), opacity = 1.0)
+        addLegend(pal = pal, values = ~get(y), title = ~paste0(xtitle), bins = 3, opacity = 1.0)
       
     }
   })
   
   #https://stackoverflow.com/questions/36980999/change-plotly-chart-y-variable-based-on-selectinput#
   
-  #Function for multiple city selector
   
   output$cities <- renderUI({
     
-    d <- event_data("plotly_click")
-    if (length(d)) {
-      #observe({print(d)})
-      #observe({print(input$radio)})
-      x <- geo_data %>% filter(get(input$radio) == d$z)
-      #observe({print(x)})
-      q <- crime %>% filter(region == x[[1]]) %>%
+    #Function for multiple city selector
+    x <- crime_switch()
+    
+    if (nrow(x)) {
+      q <- crime %>% filter(region == x$region) %>%
         mutate(city = str_to_title(city)) %>% 
         group_by(city) %>% summarise() %>% as.list()
       selectInput(
@@ -235,11 +246,10 @@ shinyServer(function(input, output) {
   })
   
   
-  #To update data table when filters change
+  
   data_func <- reactive({
-    
+    #To update data table when filters change
     mycities <- input$cityInput
-    #observe({print(mycities)})
     if(length(mycities)) {
       crime %>%
         filter(year >= input$slider[1], year <= input$slider[2]) %>%
@@ -251,10 +261,11 @@ shinyServer(function(input, output) {
         }
   })
   
-  #Function to output the data table
+  
   
   output$mytable <- renderDataTable({
     
+    #Function to output the data table
     DT::datatable(data = data_func(),
                   extensions = 'Buttons', 
                   options = list(
@@ -264,8 +275,10 @@ shinyServer(function(input, output) {
                   ))
   })
   
-  #For rendering the tabs of shiny dashboard
+  
   output$menuitem <- renderMenu({
+    
+    #For rendering the tabs of shiny dashboard
     menuItem("Menu item", icon = icon("calendar"))
   })
   

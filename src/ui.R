@@ -23,7 +23,7 @@ navbarPage("US Crime Visualization",
                         uiOutput("year"),
 
                         sliderInput("slider", h3("Filter Year", id = "myh3"),
-                                    min = 1995, max = 2017, value = c(2014, 2016), sep = ""),
+                                    min = 2009, max = 2016, value = c(2009, 2016), sep = ""),
                         
                         uiOutput("cities"),
                         

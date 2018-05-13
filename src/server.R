@@ -72,7 +72,6 @@ shinyServer(function(input, output) {
   })
   
   
-
   output$geoPlot <- renderPlotly({
     
     #Function for US plotly map
@@ -124,7 +123,6 @@ shinyServer(function(input, output) {
   })
   
   
-
   output$linePlot <- renderPlotly({
     # Function for line and scatter plot
     
@@ -175,16 +173,7 @@ shinyServer(function(input, output) {
                yaxis = list(title = xtitle, titlefont = f, tickfont = f),
                legend = list(font = f), showlegend = a)
       
-      # } else if (length(mycities)){
-      #   #observe({print("I am here too")})
-      #   p <- crime %>% filter(year >= input$slider[1], year <= input$slider[2]) %>% filter(city %in% mycities) %>% 
-      #     plot_ly(x = ~year, y = ~get(y), type = 'scatter', 
-      #             mode = m, split = ~city,  text = ~paste("Total Crime In ", city)) %>% 
-      #     layout(title = ~paste("<br>",title, x[[1]]), font = f ,xaxis = list(title = "Years", titlefont = f, tickfont = f),
-      #            yaxis = list(title = xtitle, titlefont = f, titlefont = f),
-      #            legend = list(font = f),showlegend = c)
     } else {
-      
       
       if(input$selection == 1){
         pre_plot_data <- crime %>% filter(year >= input$slider[1], year <= input$slider[2]) %>%
@@ -244,13 +233,13 @@ shinyServer(function(input, output) {
     #Readin the input from city selector
     mycities <- input$cityInput
     
-    
     if (nrow(x) & length(mycities)) {
       
       x <- crime_switch()
       
       pre_plot_data <- crime %>% filter(region == x$region, year == input$slider[2]) %>% rowwise() %>% 
         mutate(violent_crime = sum(homs_sum, rob_sum, agg_ass_sum, rape_sum, na.rm = TRUE)) %>% 
+        mutate(city = str_to_title(city)) %>% 
         arrange(violent_crime) %>% tail(7) 
       
       plot_data <- pre_plot_data
@@ -282,6 +271,7 @@ shinyServer(function(input, output) {
       if(input$selection == 1){
         pre_plot_data <- crime %>% filter(year == input$slider[2]) %>% rowwise() %>% 
           mutate(violent_crime = sum(homs_sum, rob_sum, agg_ass_sum, rape_sum, na.rm = TRUE)) %>% 
+          mutate(region = str_to_title(region)) %>% 
           group_by(region) %>% summarise(violent_crime = sum(violent_crime, na.rm = TRUE), 
                                          homs_sum = sum(homs_sum, na.rm = TRUE), 
                                          rob_sum = sum(rob_sum, na.rm = TRUE), 
@@ -424,6 +414,7 @@ shinyServer(function(input, output) {
     if(length(mycities)) {
       crime %>%
         filter(year >= input$slider[1], year <= input$slider[2]) %>%
+        mutate(city = str_to_title(city)) %>% 
         filter(city %in% mycities)
       } else
       {

@@ -125,7 +125,7 @@ shinyServer(function(input, output) {
   
   
 
-  output$linePlot2 <- renderPlotly({
+  output$linePlot <- renderPlotly({
     # Function for line and scatter plot
     
     #Reading in the extra option multiple selector input
@@ -220,6 +220,115 @@ shinyServer(function(input, output) {
     }
   })
   
+  
+  output$barPlot <- renderPlotly({
+    
+    # Function for bar plot
+    
+    #Reading in the extra option multiple selector input
+    a <- !str_detect(paste(input$checkGroup, collapse = ","), "1")
+    
+    font <- "'Lucida Console', Monaco, monospace"
+    
+    #Setting the font size
+    f <- list(family = font)
+    
+    radio_data <- get_radio()
+    xtitle <- radio_data[1]
+    title <-radio_data[2]
+    y <- radio_data[3]
+    
+    #Detect geo click
+    x <- crime_switch()
+    
+    #Readin the input from city selector
+    mycities <- input$cityInput
+    
+    
+    if (nrow(x) & length(mycities)) {
+      
+      x <- crime_switch()
+      
+      pre_plot_data <- crime %>% filter(region == x$region, year == input$slider[2]) %>% rowwise() %>% 
+        mutate(violent_crime = sum(homs_sum, rob_sum, agg_ass_sum, rape_sum, na.rm = TRUE)) %>% 
+        arrange(violent_crime) %>% tail(7) 
+      
+      plot_data <- pre_plot_data
+      plot_data$city <- factor(plot_data$city, levels = rev(pre_plot_data$city))
+      
+      plot_ly(plot_data, x = ~city, y = ~agg_ass_sum, type = 'bar', name = 'Assault', text = ~agg_ass_sum,
+              textposition = 'auto',
+              marker = list(line = list(color = 'rgb(8,48,107)', width = 1.5))) %>%
+        add_trace(y = ~rob_sum, name = 'Robbery', text = ~rob_sum,
+                  textposition = 'auto',
+                  marker = list(line = list(color = 'rgb(8,48,107)', width = 1.5))) %>%
+        add_trace(y = ~rape_sum, name = 'Rape', text = ~rape_sum,
+                  textposition = 'auto',
+                  marker = list(line = list(color = 'rgb(8,48,107)', width = 1.5))) %>%
+        add_trace(y = ~homs_sum, name = 'Homicide', text = ~homs_sum,
+                  textposition = 'auto',
+                  marker = list(line = list(color = 'rgb(8,48,107)', width = 1.5))) %>%
+        layout(yaxis = list(title = 'Count'), barmode = 'stack') %>% 
+        layout(title =  ~paste("Violent crimes in ", x$region), font = f, 
+               xaxis = list(title = paste("Counties"), titlefont = f, tickfont = f),
+               yaxis = list(title = "Violent Crimes", titlefont = f, titlefont = f),
+               legend = list(font = f),showlegend = a)
+      
+    } else {
+      
+      #https://stackoverflow.com/questions/48159713/plotly-r-order-scatter-plot-legend-entries?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
+      #Reordering the factors so that legend appears in correct order
+
+      if(input$selection == 1){
+        pre_plot_data <- crime %>% filter(year == input$slider[2]) %>% rowwise() %>% 
+          mutate(violent_crime = sum(homs_sum, rob_sum, agg_ass_sum, rape_sum, na.rm = TRUE)) %>% 
+          group_by(region) %>% summarise(violent_crime = sum(violent_crime, na.rm = TRUE), 
+                                         homs_sum = sum(homs_sum, na.rm = TRUE), 
+                                         rob_sum = sum(rob_sum, na.rm = TRUE), 
+                                         agg_ass_sum = sum(agg_ass_sum, na.rm = TRUE), 
+                                         rape_sum = sum(rape_sum, na.rm = TRUE)) %>% 
+          arrange(violent_crime) %>% tail(7) 
+        
+      } else {
+        pre_plot_data <- crime %>% filter(year == input$slider[2]) %>% rowwise() %>% 
+          mutate(violent_crime = sum(homs_sum, rob_sum, agg_ass_sum, rape_sum, na.rm = TRUE)) %>% 
+          group_by(region) %>% summarise(violent_crime = sum(violent_crime, na.rm = TRUE), 
+                                         homs_sum = sum(homs_sum, na.rm = TRUE), 
+                                         rob_sum = sum(rob_sum, na.rm = TRUE), 
+                                         agg_ass_sum = sum(agg_ass_sum, na.rm = TRUE), 
+                                         rape_sum = sum(rape_sum, na.rm = TRUE)) %>% 
+          arrange(violent_crime) %>% head(7) 
+      }
+      
+      
+      
+      plot_data <- pre_plot_data
+      plot_data$region <- factor(plot_data$region, levels = rev(pre_plot_data$region))
+      
+      plot_ly(plot_data, x = ~region, y = ~agg_ass_sum, type = 'bar', name = 'Assault', text = ~agg_ass_sum,
+              textposition = 'auto',
+              marker = list(line = list(color = 'rgb(8,48,107)', width = 1.5))) %>%
+        add_trace(y = ~rob_sum, name = 'Robbery', text = ~rob_sum,
+                  textposition = 'auto',
+                  marker = list(line = list(color = 'rgb(8,48,107)', width = 1.5))) %>%
+        add_trace(y = ~rape_sum, name = 'Rape', text = ~rape_sum,
+                  textposition = 'auto',
+                  marker = list(line = list(color = 'rgb(8,48,107)', width = 1.5))) %>%
+        add_trace(y = ~homs_sum, name = 'Homicide', text = ~homs_sum,
+                  textposition = 'auto',
+                  marker = list(line = list(color = 'rgb(8,48,107)', width = 1.5))) %>%
+        layout(yaxis = list(title = 'Count'), barmode = 'stack') %>% 
+        layout(title =  ~paste("Violent crimes in US"), font = f, 
+               xaxis = list(title = paste("Counties"), titlefont = f, tickfont = f),
+               yaxis = list(title = "Violent Crimes", titlefont = f, titlefont = f),
+               legend = list(font = f),showlegend = TRUE)
+      
+      
+    }
+    
+
+    
+  })
   
   output$countyplot <- renderLeaflet({
     

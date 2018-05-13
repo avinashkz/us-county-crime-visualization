@@ -49,7 +49,8 @@ navbarPage("US Crime Visualization",
                       ),
                       mainPanel(
                         plotlyOutput("geoPlot"),
-                        plotlyOutput("linePlot2"),
+                        plotlyOutput("linePlot"),
+                        plotlyOutput("barPlot"),
                         leafletOutput("countyplot")
                       )
                     )

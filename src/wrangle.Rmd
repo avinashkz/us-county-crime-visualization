@@ -286,8 +286,40 @@ p
 
 
 
+13/5/2018
+
+Releveling for plotly
+
+```{r}
+pre_dat <- crime %>%
+  group_by(region, year) %>% 
+  summarise(custom = sum(violent_crime, na.rm = TRUE)) %>% spread("year", "custom") %>%
+  arrange(get("2014")) %>% tail()
+
+dat <- pre_dat %>% gather("year", "custom", 2:4)
 
 
 
+dat$region <- factor(dat$region, levels = rev(pre_dat$region))
+
+dat %>% ggplot() + geom_line(aes(year, custom, group = region, color = region))
+```
+
+```{r}
+crime %>% filter(region == x$region, year == 2014) %>% 
+  select(region, city, year, violent_crime) %>% 
+  spread("year", "violent_crime") %>% 
+        arrange(`2014`) %>% 
+        head() %>% 
+        mutate(city = str_to_title(city)) %>% 
+        group_by(city) %>% summarise() %>% as.list()
+
+
+crime %>% filter(region == x$region, year == 2014) %>%
+        arrange(violent_crime) %>% 
+        head() %>% 
+        mutate(city = str_to_title(city)) %>% 
+        group_by(city) %>% summarise() %>% as.list()
+```
 
 

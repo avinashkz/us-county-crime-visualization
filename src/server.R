@@ -156,11 +156,19 @@ shinyServer(function(input, output) {
       
       x <- crime_switch()
       
-      p <- crime %>% 
-        filter(region == x$region, year >= input$slider[1], year <= input$slider[2]) %>%
-        mutate(city = str_to_title(city)) %>% 
-        filter(city %in% mycities) %>% 
-        plot_ly(x = ~year, y = ~get(y), type = 'scatter', 
+      pre_plot_data <- crime %>% filter(region == x$region, year >= input$slider[1], year <= input$slider[2]) %>%
+        mutate(city = str_to_title(city), custom = get(y)) %>% 
+        select(region, city, year, custom) %>% 
+        filter(city %in% mycities) %>%
+        spread("year", "custom") %>%
+        arrange(get(as.character(input$slider[1])))
+        #arrange(`2014`) %>% View()
+      
+      #Reordering the factors so that legend appears in correct order
+      plot_data <- pre_plot_data %>% gather("year", "custom", 3:ncol(pre_plot_data)) #%>% View()
+      plot_data$city <- factor(plot_data$city, levels = rev(pre_plot_data$city))
+        
+      plot_data %>% plot_ly(x = ~year, y = ~custom, type = 'scatter',
                 mode = m, split = ~city,  text = ~paste("Total Crime In ", city)) %>% 
         layout(title = ~paste(title, x$region), font = f ,
                xaxis = list(title = "Years", titlefont = f, tickfont = f),
@@ -176,9 +184,31 @@ shinyServer(function(input, output) {
       #            yaxis = list(title = xtitle, titlefont = f, titlefont = f),
       #            legend = list(font = f),showlegend = c)
     } else {
-      plot_data <- crime %>% filter(year >= input$slider[1], year <= input$slider[2])  %>%
-        group_by(region, year) %>%
-        summarise(custom = sum(get(y), na.rm = TRUE))
+      
+      
+      if(input$selection == 1){
+        pre_plot_data <- crime %>% filter(year >= input$slider[1], year <= input$slider[2]) %>%
+          group_by(region, year) %>% 
+          summarise(custom = sum(get(y), na.rm = TRUE)) %>% spread("year", "custom") %>%
+          arrange(get(as.character(input$slider[1]))) %>% tail(10) 
+
+      } else if(input$selection == 2){
+        pre_plot_data <- crime %>% filter(year >= input$slider[1], year <= input$slider[2]) %>%
+          group_by(region, year) %>% 
+          summarise(custom = sum(get(y), na.rm = TRUE)) %>% spread("year", "custom") %>%
+          arrange(get(as.character(input$slider[1]))) %>% head(10) 
+        
+      } else{
+        pre_plot_data <- crime %>% filter(year >= input$slider[1], year <= input$slider[2]) %>%
+          group_by(region, year) %>% 
+          summarise(custom = sum(get(y), na.rm = TRUE)) %>% spread("year", "custom") %>%
+          arrange(get(as.character(input$slider[1])))
+      }
+
+      #https://stackoverflow.com/questions/48159713/plotly-r-order-scatter-plot-legend-entries?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
+      #Reordering the factors so that legend appears in correct order
+      plot_data <- pre_plot_data %>% gather("year", "custom", 2:ncol(pre_plot_data))
+      plot_data$region <- factor(plot_data$region, levels = rev(pre_plot_data$region))
       
       plot_data %>% 
         plot_ly(x = ~year, y = ~custom, type = 'scatter', 
@@ -202,7 +232,7 @@ shinyServer(function(input, output) {
     
     if (nrow(x)) {
 
-      custom <- crime %>% filter(year == 2016)
+      custom <- crime %>% filter(year == input$slider[2])
       
       second <- left_join(df, custom, by = c("code", "NAME" = "city"))
       
@@ -218,8 +248,8 @@ shinyServer(function(input, output) {
                     fillColor = ~pal(get(y)),
                     label = ~paste0(city,": ", get(y)),
                     highlightOptions = highlightOptions(color = "white", weight = 2,
-                                                        bringToFront = TRUE)) %>% 
-        addLegend(pal = pal, values = ~get(y), title = ~paste0(xtitle), bins = 3, opacity = 1.0)
+                                                        bringToFront = TRUE)) %>%
+        addLegend(pal = pal, values = ~get(y), title = ~paste0(xtitle), bins = 4, opacity = 1.0)
       
     }
   })
@@ -232,19 +262,51 @@ shinyServer(function(input, output) {
     #Function for multiple city selector
     x <- crime_switch()
     
-    if (nrow(x)) {
-      q <- crime %>% filter(region == x$region) %>%
+    radio_data <- get_radio()
+    y <- radio_data[3]
+    
+    
+    all_cities <- crime %>% filter(region == x$region, year == input$slider[1]) %>%
+      mutate(city = str_to_title(city)) %>% 
+      group_by(city) %>% summarise() %>% as.list()
+  
+    
+    if ((input$selection == 1) & nrow(x)) {
+      q <- crime %>% filter(region == x$region, year == input$slider[1]) %>%
+        arrange(get(y)) %>% 
+        tail(10) %>% 
         mutate(city = str_to_title(city)) %>% 
         group_by(city) %>% summarise() %>% as.list()
+      observe({print(q$city)})
       selectInput(
         "cityInput",
         h3("Cities Selected"),
-        sort(q$city),
-        selected = q$city,
+        sort(all_cities$city),
+        selected = c(q$city),
+        multiple = TRUE)
+    } else if ((input$selection == 2) & nrow(x)) {
+      q <- crime %>% filter(region == x$region, year == input$slider[1]) %>% 
+        arrange(get(y)) %>% 
+        head(10) %>% 
+        mutate(city = str_to_title(city)) %>% 
+        group_by(city) %>% summarise() %>% as.list()
+      observe({print(q$city)})
+      selectInput(
+        "cityInput",
+        h3("Cities Selected"),
+        sort(all_cities$city),
+        selected = c(q$city),
+        multiple = TRUE)
+    } else if (nrow(x)) {
+      selectInput(
+        "cityInput",
+        h3("Cities Selected"),
+        sort(all_cities$city),
+        selected = all_cities$city,
         multiple = TRUE)
     }
+    
   })
-  
   
   
   data_func <- reactive({
@@ -277,10 +339,8 @@ shinyServer(function(input, output) {
   
   
   output$menuitem <- renderMenu({
-    
     #For rendering the tabs of shiny dashboard
     menuItem("Menu item", icon = icon("calendar"))
   })
   
 })
-

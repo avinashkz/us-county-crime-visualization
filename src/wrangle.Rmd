@@ -7,6 +7,8 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
 ```
 
 ```{r}
@@ -286,8 +288,113 @@ p
 
 
 
+13/5/2018
+
+Releveling for plotly
+
+```{r}
+pre_dat <- crime %>%
+  group_by(region, year) %>% 
+  summarise(custom = sum(violent_crime, na.rm = TRUE)) %>% spread("year", "custom") %>%
+  arrange(get("2014")) %>% tail()
+
+dat <- pre_dat %>% gather("year", "custom", 2:4)
 
 
 
+dat$region <- factor(dat$region, levels = rev(pre_dat$region))
 
+dat %>% ggplot() + geom_line(aes(year, custom, group = region, color = region))
+```
+
+```{r}
+crime %>% filter(region == x$region, year == 2014) %>% 
+  select(region, city, year, violent_crime) %>% 
+  spread("year", "violent_crime") %>% 
+        arrange(`2014`) %>% 
+        head() %>% 
+        mutate(city = str_to_title(city)) %>% 
+        group_by(city) %>% summarise() %>% as.list()
+
+
+crime %>% filter(region == "Texas", year == 2014) %>%
+        arrange(violent_crime) %>% 
+        head() %>% 
+        mutate(city = str_to_title(city)) %>% 
+        group_by(city) %>% summarise() %>% as.list()
+```
+
+
+```{r}
+library(plotly)
+
+data <- crime %>% filter(region == "Texas", year == 2014) %>% rowwise() %>% 
+  mutate(violent_crime = sum(homs_sum, rob_sum, agg_ass_sum, rape_sum, na.rm = TRUE)) %>% 
+        arrange(violent_crime) %>% 
+        tail(na.rm = TRUE) %>% 
+        mutate(city = str_to_title(city))
+
+plot_ly(data, x = ~city, y = ~homs_sum, type = 'bar', name = 'Homicide') %>%
+  add_trace(y = ~rape_sum, name = 'Rape') %>%
+  layout(yaxis = list(title = 'Count'), barmode = 'stack')
+
+```
+```{r, message=FALSE, warning=FALSE}
+ pre_plot_data <- crime %>% filter(year == 2014) %>% rowwise() %>% 
+  mutate(violent_crime = sum(homs_sum, rob_sum, agg_ass_sum, rape_sum, na.rm = TRUE)) %>% 
+          arrange(violent_crime) %>% tail(10) 
+
+      plot_data <- pre_plot_data
+      plot_data$city <- factor(plot_data$city, levels = rev(pre_plot_data$city))
+ 
+      xtitle = "A"
+      title = "B"
+      plot_ly(plot_data, x = ~city, y = ~agg_ass_sum, type = 'bar', name = 'Assault', text = ~agg_ass_sum,
+              textposition = 'auto',
+             marker = list(line = list(color = 'rgb(8,48,107)', width = 1.5))) %>%
+        add_trace(y = ~rob_sum, name = 'Robbery', text = ~rob_sum,
+              textposition = 'auto',
+             marker = list(line = list(color = 'rgb(8,48,107)', width = 1.5))) %>%
+        add_trace(y = ~rape_sum, name = 'Rape', text = ~rape_sum,
+              textposition = 'auto',
+             marker = list(line = list(color = 'rgb(8,48,107)', width = 1.5))) %>%
+        add_trace(y = ~homs_sum, name = 'Homicide', text = ~homs_sum,
+              textposition = 'auto',
+             marker = list(line = list(color = 'rgb(8,48,107)', width = 1.5))) %>%
+        layout(yaxis = list(title = 'Count'), barmode = 'stack') %>% 
+        layout(title =  ~paste("Violent crimes in ", "SF"), font = f, 
+               xaxis = list(title = paste("Counties"), titlefont = f, tickfont = f),
+               yaxis = list(title = "Violent Crimes", titlefont = f, titlefont = f),
+               legend = list(font = f),showlegend = TRUE)
+```
+
+```{r}
+ pre_plot_data <- crime %>% filter(year == 2014) %>% rowwise() %>% 
+  mutate(violent_crime = sum(homs_sum, rob_sum, agg_ass_sum, rape_sum, na.rm = TRUE)) %>% 
+  group_by(region) %>% summarise(violent_crime = sum(violent_crime, na.rm = TRUE), homs_sum = sum(homs_sum, na.rm = TRUE), rob_sum = sum(rob_sum, na.rm = TRUE), agg_ass_sum = sum(agg_ass_sum, na.rm = TRUE), rape_sum = sum(rape_sum, na.rm = TRUE)) %>% 
+          arrange(violent_crime) %>% tail(10) 
+
+      plot_data <- pre_plot_data
+      plot_data$region <- factor(plot_data$region, levels = rev(pre_plot_data$region))
+ 
+      xtitle = "A"
+      title = "B"
+      plot_ly(plot_data, x = ~region, y = ~agg_ass_sum, type = 'bar', name = 'Assault', text = ~agg_ass_sum,
+              textposition = 'auto',
+             marker = list(line = list(color = 'rgb(8,48,107)', width = 1.5))) %>%
+        add_trace(y = ~rob_sum, name = 'Robbery', text = ~rob_sum,
+              textposition = 'auto',
+             marker = list(line = list(color = 'rgb(8,48,107)', width = 1.5))) %>%
+        add_trace(y = ~rape_sum, name = 'Rape', text = ~rape_sum,
+              textposition = 'auto',
+             marker = list(line = list(color = 'rgb(8,48,107)', width = 1.5))) %>%
+        add_trace(y = ~homs_sum, name = 'Homicide', text = ~homs_sum,
+              textposition = 'auto',
+             marker = list(line = list(color = 'rgb(8,48,107)', width = 1.5))) %>%
+        layout(yaxis = list(title = 'Count'), barmode = 'stack') %>% 
+        layout(title =  ~paste("Violent crimes in ", "SF"), font = f, 
+               xaxis = list(title = paste("Counties"), titlefont = f, tickfont = f),
+               yaxis = list(title = "Violent Crimes", titlefont = f, titlefont = f),
+               legend = list(font = f),showlegend = TRUE)
+```
 

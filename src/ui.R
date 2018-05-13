@@ -29,7 +29,13 @@ navbarPage("US Crime Visualization",
                         
                         radioButtons("radio", h3("Select Feature", id = "myh3"),
                                      choices = list( "Total Crimes" = "violent","Rape" = "rape",
-                                                     "Assault" = "assault", "Homicide" = "homicide", "Robbery" = "robbery"),selected = "violent"),
+                                                     "Assault" = "assault", "Homicide" = "homicide",
+                                                     "Robbery" = "robbery"),selected = "violent"),
+                        
+
+                       radioButtons("selection", h3("Radio buttons"), 
+                                    choices = list("Top 10" = 1, "Bottom 10" = 2,
+                                                   "All" = 3), selected = 1),
                         
                         
                         # Extra options for user.
@@ -38,10 +44,13 @@ navbarPage("US Crime Visualization",
                                            choices = c("Remove Legend" = 1),
                                            selected = c())
                         
+                        
+                        
                       ),
                       mainPanel(
                         plotlyOutput("geoPlot"),
-                        plotlyOutput("linePlot2"),
+                        plotlyOutput("linePlot"),
+                        plotlyOutput("barPlot"),
                         leafletOutput("countyplot")
                       )
                     )

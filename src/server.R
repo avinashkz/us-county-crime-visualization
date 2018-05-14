@@ -168,8 +168,8 @@ shinyServer(function(input, output) {
         
       plot_data %>% plot_ly(x = ~year, y = ~custom, type = 'scatter',
                 mode = m, split = ~city,  text = ~paste("Total Crime In ", city)) %>% 
-        layout(title = ~paste(title, x$region), font = f ,
-               xaxis = list(title = "Years", titlefont = f, tickfont = f),
+        layout(title = ~paste(""), font = f ,
+               xaxis = list(title = "", titlefont = f, tickfont = f),
                yaxis = list(title = xtitle, titlefont = f, tickfont = f),
                legend = list(font = f), showlegend = a)
       
@@ -202,8 +202,8 @@ shinyServer(function(input, output) {
       plot_data %>% 
         plot_ly(x = ~year, y = ~custom, type = 'scatter', 
                 mode = m, split = ~region,  text = ~paste("Total Crime In ", region)) %>% 
-        layout(title =  ~paste(title, "US"), font = f, 
-               xaxis = list(title = "Years", titlefont = f, tickfont = f),
+        layout(title =  ~paste(""), font = f, 
+               xaxis = list(title = "", titlefont = f, tickfont = f),
                yaxis = list(title = xtitle, titlefont = f, titlefont = f),
                legend = list(font = f),showlegend = a)
     }
@@ -215,7 +215,7 @@ shinyServer(function(input, output) {
     # Function for bar plot
     
     #Reading in the extra option multiple selector input
-    a <- !str_detect(paste(input$checkGroup, collapse = ","), "1")
+    #a <- !str_detect(paste(input$checkGroup, collapse = ","), "1")
     
     font <- "'Lucida Console', Monaco, monospace"
     
@@ -240,7 +240,7 @@ shinyServer(function(input, output) {
       pre_plot_data <- crime %>% filter(region == x$region, year == input$slider[2]) %>% rowwise() %>% 
         mutate(violent_crime = sum(homs_sum, rob_sum, agg_ass_sum, rape_sum, na.rm = TRUE)) %>% 
         mutate(city = str_to_title(city)) %>% 
-        arrange(violent_crime) %>% tail(7) 
+        arrange(violent_crime) %>% tail(5) 
       
       plot_data <- pre_plot_data
       plot_data$city <- factor(plot_data$city, levels = rev(pre_plot_data$city))
@@ -259,9 +259,9 @@ shinyServer(function(input, output) {
                   marker = list(line = list(color = 'rgb(8,48,107)', width = 1.5))) %>%
         layout(yaxis = list(title = 'Count'), barmode = 'stack') %>% 
         layout(title =  ~paste("Violent crimes in ", x$region), font = f, 
-               xaxis = list(title = paste("Counties"), titlefont = f, tickfont = f),
+               xaxis = list(title = paste(""), titlefont = f, tickfont = f),
                yaxis = list(title = "Violent Crimes", titlefont = f, titlefont = f),
-               legend = list(font = f),showlegend = a)
+               legend = list(font = f),showlegend = TRUE)
       
     } else {
       
@@ -277,7 +277,7 @@ shinyServer(function(input, output) {
                                          rob_sum = sum(rob_sum, na.rm = TRUE), 
                                          agg_ass_sum = sum(agg_ass_sum, na.rm = TRUE), 
                                          rape_sum = sum(rape_sum, na.rm = TRUE)) %>% 
-          arrange(violent_crime) %>% tail(7) 
+          arrange(violent_crime) %>% tail(5) 
         
       } else {
         pre_plot_data <- crime %>% filter(year == input$slider[2]) %>% rowwise() %>% 
@@ -287,7 +287,7 @@ shinyServer(function(input, output) {
                                          rob_sum = sum(rob_sum, na.rm = TRUE), 
                                          agg_ass_sum = sum(agg_ass_sum, na.rm = TRUE), 
                                          rape_sum = sum(rape_sum, na.rm = TRUE)) %>% 
-          arrange(violent_crime) %>% head(7) 
+          arrange(violent_crime) %>% head(5) 
       }
       
       
@@ -309,7 +309,7 @@ shinyServer(function(input, output) {
                   marker = list(line = list(color = 'rgb(8,48,107)', width = 1.5))) %>%
         layout(yaxis = list(title = 'Count'), barmode = 'stack') %>% 
         layout(title =  ~paste("Violent crimes in US"), font = f, 
-               xaxis = list(title = paste("Counties"), titlefont = f, tickfont = f),
+               xaxis = list(title = paste(""), titlefont = f, tickfont = f),
                yaxis = list(title = "Violent Crimes", titlefont = f, titlefont = f),
                legend = list(font = f),showlegend = TRUE)
       
@@ -414,7 +414,7 @@ shinyServer(function(input, output) {
     if(length(mycities)) {
       crime %>%
         filter(year >= input$slider[1], year <= input$slider[2]) %>%
-        mutate(city = str_to_title(city)) %>% 
+        mutate(city = str_to_title(city)) %>%
         filter(city %in% mycities)
       } else
       {
@@ -442,5 +442,129 @@ shinyServer(function(input, output) {
     #For rendering the tabs of shiny dashboard
     menuItem("Menu item", icon = icon("calendar"))
   })
+  
+  
+  leaflet_click <- reactive({
+    
+    click <- input$alternateplot_shape_click
+    if(is.null(click)) return()
+    
+    points <- SpatialPoints(as.data.frame(cbind(click$lng, click$lat)))
+    #https://stackoverflow.com/questions/8751497/latitude-longitude-coordinates-to-state-code-in-r?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
+    proj4string(points) <- proj4string(state_data)
+    result <- as.character(over(points, state_data)$STUSPS)
+    return(c(result, click$lng, click$lat))
+    
+  })
+  
+  
+  
+  # observeEvent(input$alternateplot_shape_click, {
+  #   
+  #   click <- input$alternateplot_shape_click
+  #   
+  #   if(is.null(click)) return()
+  #   
+  #   points <- SpatialPoints(as.data.frame(cbind(click$lng, click$lat)))
+  #   #https://stackoverflow.com/questions/8751497/latitude-longitude-coordinates-to-state-code-in-r?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
+  #   proj4string(points) <- proj4string(state_data)
+  #   result <- as.character(over(points, state_data)$STUSPS)
+  #   
+  #   output$alternateplot <- renderLeaflet({
+  #     
+  #     y <- "violent_crime"
+  #     
+  #     xtitle <- "Violent Crime"
+  #     
+  #     custom <- crime %>% filter(year == input$slider[2])
+  #     
+  #     second <- left_join(df, custom, by = c("code", "NAME" = "city"))
+  #     
+  #     leaf_data@data <- second    
+  #     
+  #     neStates <- subset(leaf_data, leaf_data$code == result)
+  #     
+  #     pal <- colorNumeric("viridis", NULL)
+  #     
+  #     leaflet(neStates) %>% addTiles() %>% 
+  #       addPolygons(color = "#444444", weight = 1, smoothFactor = 0.5,
+  #                   opacity = 1.0, fillOpacity = 1,
+  #                   fillColor = ~pal(get(y)),
+  #                   label = ~paste0(city,": ", get(y)),
+  #                   highlightOptions = highlightOptions(color = "white", weight = 2,
+  #                                                       bringToFront = TRUE)) %>%
+  #       addLegend(pal = pal, values = ~get(y), title = ~paste0(xtitle), bins = 4, opacity = 1.0)
+  #     
+  #   })
+  #   
+  # })
+  
+  
+  output$alternateplot <- renderLeaflet({
+    
+      leaf_state <- leaflet_click()
+      state <- leaf_state[1]
+      long <- as.numeric(leaf_state[2])
+      lat <- as.numeric(leaf_state[3])
+      
+      if(is.null(leaf_state)) {
+      
+    
+      y <- "violent_crime"
+      
+      xtitle <- "Violent Crime"
+      
+      #custom <- crime %>% filter(year == input$slider[2])
+      
+      #second <- left_join(df, custom, by = c("code", "NAME" = "city"))
+      
+      state_data@data <- states_join   
+      
+      #neStates <- subset(leaf_data, leaf_data$code == x$code)
+      
+      pal <- colorNumeric("viridis", NULL)
+      
+      leaflet(state_data) %>%
+        setView(lng = -96, lat = 37.8, 4) %>% addTiles() %>% 
+        addPolygons(color = "#444444", weight = 1, smoothFactor = 0.5,
+                    opacity = 1.0, fillOpacity = 1,
+                    dashArray = "3",
+                    fillColor = ~pal(get(y)),
+                    label = ~paste0(NAME,": ", get(y)),
+                    highlightOptions = highlightOptions(color = "black", weight = 2,
+                                                        bringToFront = TRUE)) %>%
+        addLegend(pal = pal, values = ~get(y), title = ~paste0(xtitle), bins = 4, opacity = 1.0, position = "bottomright")
+
+      } else{
+        
+        y <- "violent_crime"
+        
+        xtitle <- "Violent Crime"
+        
+        custom <- crime %>% filter(year == input$slider[2])
+        
+        second <- left_join(df, custom, by = c("code", "NAME" = "city"))
+        
+        leaf_data@data <- second    
+        
+        neStates <- subset(leaf_data, leaf_data$code == state)
+        
+        pal <- colorNumeric("viridis", NULL)
+        
+        leaflet(neStates) %>% addTiles() %>% 
+          addPolygons(color = "#444444", weight = 1, smoothFactor = 0.5,
+                      opacity = 1.0, fillOpacity = 1,
+                      fillColor = ~pal(get(y)),
+                      label = ~paste0(city,": ", get(y)),
+                      highlightOptions = highlightOptions(color = "white", weight = 2,
+                                                          bringToFront = TRUE)) %>%
+          addLegend(pal = pal, values = ~get(y), title = ~paste0(xtitle), bins = 4, opacity = 1.0, position = "bottomright")
+        
+      }
+      
+      
+  })
+  
+
   
 })

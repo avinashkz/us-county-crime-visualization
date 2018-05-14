@@ -56,70 +56,36 @@ shinyServer(function(input, output) {
     
   })
   
+  # crime_switch <- reactive({
+  #   
+  #   geo_click <- event_data("plotly_click")
+  #   
+  #   #To handle error when starting application. No click at start!
+  #   if (!length(geo_click)) {return(tibble())}
+  #   
+  #   x <- geo_data %>% filter(get(input$radio) == geo_click$z)
+  #   #Fix issue of changing crime type.
+  #   if(nrow(x)) {global_state <<- x}
+  #   
+  #   return(global_state)
+  #   
+  # })
+  
+  
   crime_switch <- reactive({
     
-    geo_click <- event_data("plotly_click")
+    click <- input$alternateplot_shape_click
+    if(is.null(click)) return()
     
-    #To handle error when starting application. No click at start!
-    if (!length(geo_click)) {return(tibble())}
+    points <- SpatialPoints(as.data.frame(cbind(click$lng, click$lat)))
+    #https://stackoverflow.com/questions/8751497/latitude-longitude-coordinates-to-state-code-in-r?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
+    proj4string(points) <- proj4string(state_data)
+    result <- as.character(over(points, state_data)$STUSPS)
     
-    x <- geo_data %>% filter(get(input$radio) == geo_click$z)
-    #Fix issue of changing crime type.
-    if(nrow(x)) {global_state <<- x}
+    #if(nrow(x)) {global_state <<- x}
     
-    return(global_state)
+    return(c(result, click$lng, click$lat))
     
-  })
-  
-  
-  output$geoPlot <- renderPlotly({
-    
-    #Function for US plotly map
-    
-    font <- "'Lucida Console', Monaco, monospace"
-    f <- list(family = font)
-    
-    my_colors <- c('#008d4a', '#ffc300', '#FD850E', '#e31a1c', '#5D11A9', '#1131A9')
-    
-    radio_data <- get_radio()
-    xtitle <- radio_data[1]
-    title <- radio_data[2]
-    q <- radio_data[4]
-    color <- my_colors[as.numeric(radio_data[5])]
-    
-    #Filter the data for plotting the geo map
-    geo_data <<- crime %>% filter(year == 2014) %>%  group_by(region, code) %>%
-      summarise(rape = sum(rape_sum, na.rm = TRUE), assault = sum(agg_ass_sum, na.rm = TRUE),
-                robbery = sum(rob_sum, na.rm = TRUE), homicide = sum(homs_sum, na.rm = TRUE), 
-                violent = sum(violent_crime, na.rm = TRUE))
-    
-    #Creating column for contents to hover
-    geo_data$hover <- with(geo_data, paste(region, '<br>',
-                                           "Rape: ",rape, '<br>',"Assault: ", assault,'<br>',
-                                           "Robbery: ", robbery, '<br>',"Homicide: ", homicide))
-    
-    # give state boundaries a white border
-    l <- list(color = toRGB("white"), width = 2)
-    
-    # specify some map projection/options
-    g <- list(
-      scope = 'usa',
-      projection = list(type = 'albers usa'),
-      showlakes = TRUE,
-      lakecolor = toRGB('white')
-    )
-    
-    #Plot US map using shiny
-    plot1 <- plot_geo(geo_data, locationmode = 'USA-states') %>%
-      add_trace(
-        z = ~get(q), text = ~hover, locations = ~code,
-        color = ~sqrt(sqrt(get(q))), colors = c(color, "#323232")
-      ) %>%
-      colorbar(title = xtitle) %>%
-      layout(
-        title = paste('<br>', title, 'Map(State Selector)'),
-        geo = g, font = f
-      )
   })
   
   
@@ -150,11 +116,9 @@ shinyServer(function(input, output) {
     mycities <- input$cityInput
 
     
-    if (nrow(x) & length(mycities)) {
+    if (!is.null(x) & length(mycities)) {
       
-      x <- crime_switch()
-      
-      pre_plot_data <- crime %>% filter(region == x$region, year >= input$slider[1], year <= input$slider[2]) %>%
+      pre_plot_data <- crime %>% filter(code == x[1], year >= input$slider[1], year <= input$slider[2]) %>%
         mutate(city = str_to_title(city), custom = get(y)) %>% 
         select(region, city, year, custom) %>% 
         filter(city %in% mycities) %>%
@@ -233,11 +197,9 @@ shinyServer(function(input, output) {
     #Readin the input from city selector
     mycities <- input$cityInput
     
-    if (nrow(x) & length(mycities)) {
+    if (!is.null(x) & length(mycities)) {
       
-      x <- crime_switch()
-      
-      pre_plot_data <- crime %>% filter(region == x$region, year == input$slider[2]) %>% rowwise() %>% 
+      pre_plot_data <- crime %>% filter(code == x[1], year == input$slider[2]) %>% rowwise() %>% 
         mutate(violent_crime = sum(homs_sum, rob_sum, agg_ass_sum, rape_sum, na.rm = TRUE)) %>% 
         mutate(city = str_to_title(city)) %>% 
         arrange(violent_crime) %>% tail(5) 
@@ -258,7 +220,7 @@ shinyServer(function(input, output) {
                   textposition = 'auto',
                   marker = list(line = list(color = 'rgb(8,48,107)', width = 1.5))) %>%
         layout(yaxis = list(title = 'Count'), barmode = 'stack') %>% 
-        layout(title =  ~paste("Violent crimes in ", x$region), font = f, 
+        layout(title =  ~paste("Violent crimes in ", x[1]), font = f, 
                xaxis = list(title = paste(""), titlefont = f, tickfont = f),
                yaxis = list(title = "Violent Crimes", titlefont = f, titlefont = f),
                legend = list(font = f),showlegend = TRUE)
@@ -329,7 +291,7 @@ shinyServer(function(input, output) {
     
     x <- crime_switch()
     
-    if (nrow(x)) {
+    if (!is.null(x)) {
 
       custom <- crime %>% filter(year == input$slider[2])
       
@@ -364,14 +326,14 @@ shinyServer(function(input, output) {
     radio_data <- get_radio()
     y <- radio_data[3]
     
-    
-    all_cities <- crime %>% filter(region == x$region, year == input$slider[1]) %>%
+    all_cities <- crime %>% filter(code == x[1], year == input$slider[1]) %>%
       mutate(city = str_to_title(city)) %>% 
       group_by(city) %>% summarise() %>% as.list()
   
     
-    if ((input$selection == 1) & nrow(x)) {
-      q <- crime %>% filter(region == x$region, year == input$slider[1]) %>%
+    #observe({print(x[1])})
+    if ((input$selection == 1) & !is.null(x)) {
+      q <- crime %>% filter(code == x[1], year == input$slider[1]) %>%
         arrange(get(y)) %>% 
         tail(10) %>% 
         mutate(city = str_to_title(city)) %>% 
@@ -383,8 +345,8 @@ shinyServer(function(input, output) {
         sort(all_cities$city),
         selected = c(q$city),
         multiple = TRUE)
-    } else if ((input$selection == 2) & nrow(x)) {
-      q <- crime %>% filter(region == x$region, year == input$slider[1]) %>% 
+    } else if ((input$selection == 2) & !is.null(x)) {
+      q <- crime %>% filter(code == x[1], year == input$slider[1]) %>% 
         arrange(get(y)) %>% 
         head(10) %>% 
         mutate(city = str_to_title(city)) %>% 
@@ -396,7 +358,7 @@ shinyServer(function(input, output) {
         sort(all_cities$city),
         selected = c(q$city),
         multiple = TRUE)
-    } else if (nrow(x)) {
+    } else if (!is.null(x)) {
       selectInput(
         "cityInput",
         h3("Cities Selected"),

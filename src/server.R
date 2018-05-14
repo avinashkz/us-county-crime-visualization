@@ -8,6 +8,7 @@ library(shinyjs)
 library(feather)
 library(rgdal)
 library(readr)
+library(shinyjs)
 
 shinyServer(function(input, output) {
   
@@ -56,20 +57,10 @@ shinyServer(function(input, output) {
     
   })
   
-  # crime_switch <- reactive({
-  #   
-  #   geo_click <- event_data("plotly_click")
-  #   
-  #   #To handle error when starting application. No click at start!
-  #   if (!length(geo_click)) {return(tibble())}
-  #   
-  #   x <- geo_data %>% filter(get(input$radio) == geo_click$z)
-  #   #Fix issue of changing crime type.
-  #   if(nrow(x)) {global_state <<- x}
-  #   
-  #   return(global_state)
-  #   
-  # })
+  observeEvent(input$refresh, {
+    shinyjs::js$refresh()
+  })
+
   
   
   crime_switch <- reactive({
@@ -81,8 +72,7 @@ shinyServer(function(input, output) {
     #https://stackoverflow.com/questions/8751497/latitude-longitude-coordinates-to-state-code-in-r?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
     proj4string(points) <- proj4string(state_data)
     result <- as.character(over(points, state_data)$STUSPS)
-    
-    #if(nrow(x)) {global_state <<- x}
+ 
     
     return(c(result, click$lng, click$lat))
     
@@ -143,20 +133,20 @@ shinyServer(function(input, output) {
         pre_plot_data <- crime %>% filter(year >= input$slider[1], year <= input$slider[2]) %>%
           group_by(region, year) %>% 
           summarise(custom = sum(get(y), na.rm = TRUE)) %>% spread("year", "custom") %>%
-          arrange(get(as.character(input$slider[1]))) %>% tail(10) 
+          arrange(get(as.character(input$slider[1]))) %>% tail() 
 
       } else if(input$selection == 2){
         pre_plot_data <- crime %>% filter(year >= input$slider[1], year <= input$slider[2]) %>%
           group_by(region, year) %>% 
           summarise(custom = sum(get(y), na.rm = TRUE)) %>% spread("year", "custom") %>%
-          arrange(get(as.character(input$slider[1]))) %>% head(10) 
+          arrange(get(as.character(input$slider[1]))) %>% head() 
         
-      } else{
-        pre_plot_data <- crime %>% filter(year >= input$slider[1], year <= input$slider[2]) %>%
-          group_by(region, year) %>% 
-          summarise(custom = sum(get(y), na.rm = TRUE)) %>% spread("year", "custom") %>%
-          arrange(get(as.character(input$slider[1])))
-      }
+      } #else{
+      #   pre_plot_data <- crime %>% filter(year >= input$slider[1], year <= input$slider[2]) %>%
+      #     group_by(region, year) %>% 
+      #     summarise(custom = sum(get(y), na.rm = TRUE)) %>% spread("year", "custom") %>%
+      #     arrange(get(as.character(input$slider[1])))
+      # }
 
       #https://stackoverflow.com/questions/48159713/plotly-r-order-scatter-plot-legend-entries?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
       #Reordering the factors so that legend appears in correct order
@@ -202,7 +192,8 @@ shinyServer(function(input, output) {
       pre_plot_data <- crime %>% filter(code == x[1], year == input$slider[2]) %>% rowwise() %>% 
         mutate(violent_crime = sum(homs_sum, rob_sum, agg_ass_sum, rape_sum, na.rm = TRUE)) %>% 
         mutate(city = str_to_title(city)) %>% 
-        arrange(violent_crime) %>% tail(5) 
+        filter(city %in% mycities) %>%
+        arrange(violent_crime)
       
       plot_data <- pre_plot_data
       plot_data$city <- factor(plot_data$city, levels = rev(pre_plot_data$city))
@@ -220,7 +211,7 @@ shinyServer(function(input, output) {
                   textposition = 'auto',
                   marker = list(line = list(color = 'rgb(8,48,107)', width = 1.5))) %>%
         layout(yaxis = list(title = 'Count'), barmode = 'stack') %>% 
-        layout(title =  ~paste("Violent crimes in ", x[1]), font = f, 
+        layout(title =  ~paste("Violent crimes in ", plot_data$region[1]), font = f, 
                xaxis = list(title = paste(""), titlefont = f, tickfont = f),
                yaxis = list(title = "Violent Crimes", titlefont = f, titlefont = f),
                legend = list(font = f),showlegend = TRUE)
@@ -239,7 +230,7 @@ shinyServer(function(input, output) {
                                          rob_sum = sum(rob_sum, na.rm = TRUE), 
                                          agg_ass_sum = sum(agg_ass_sum, na.rm = TRUE), 
                                          rape_sum = sum(rape_sum, na.rm = TRUE)) %>% 
-          arrange(violent_crime) %>% tail(5) 
+          arrange(violent_crime) %>% tail() 
         
       } else {
         pre_plot_data <- crime %>% filter(year == input$slider[2]) %>% rowwise() %>% 
@@ -249,7 +240,7 @@ shinyServer(function(input, output) {
                                          rob_sum = sum(rob_sum, na.rm = TRUE), 
                                          agg_ass_sum = sum(agg_ass_sum, na.rm = TRUE), 
                                          rape_sum = sum(rape_sum, na.rm = TRUE)) %>% 
-          arrange(violent_crime) %>% head(5) 
+          arrange(violent_crime) %>% head() 
       }
       
       
@@ -274,46 +265,12 @@ shinyServer(function(input, output) {
                xaxis = list(title = paste(""), titlefont = f, tickfont = f),
                yaxis = list(title = "Violent Crimes", titlefont = f, titlefont = f),
                legend = list(font = f),showlegend = TRUE)
-      
-      
     }
     
 
     
   })
   
-  output$countyplot <- renderLeaflet({
-    
-    radio_data <- get_radio()
-    xtitle <- radio_data[1]
-    title <- radio_data[2]
-    y <- radio_data[3]
-    
-    x <- crime_switch()
-    
-    if (!is.null(x)) {
-
-      custom <- crime %>% filter(year == input$slider[2])
-      
-      second <- left_join(df, custom, by = c("code", "NAME" = "city"))
-      
-      leaf_data@data <- second    
-      
-      neStates <- subset(leaf_data, leaf_data$code == x$code)
-      
-      pal <- colorNumeric("viridis", NULL)
-      
-      leaflet(neStates) %>% addTiles() %>% 
-        addPolygons(color = "#444444", weight = 1, smoothFactor = 0.5,
-                    opacity = 1.0, fillOpacity = 1,
-                    fillColor = ~pal(get(y)),
-                    label = ~paste0(city,": ", get(y)),
-                    highlightOptions = highlightOptions(color = "white", weight = 2,
-                                                        bringToFront = TRUE)) %>%
-        addLegend(pal = pal, values = ~get(y), title = ~paste0(xtitle), bins = 4, opacity = 1.0)
-      
-    }
-  })
   
   #https://stackoverflow.com/questions/36980999/change-plotly-chart-y-variable-based-on-selectinput#
   
@@ -335,7 +292,7 @@ shinyServer(function(input, output) {
     if ((input$selection == 1) & !is.null(x)) {
       q <- crime %>% filter(code == x[1], year == input$slider[1]) %>%
         arrange(get(y)) %>% 
-        tail(10) %>% 
+        tail() %>% 
         mutate(city = str_to_title(city)) %>% 
         group_by(city) %>% summarise() %>% as.list()
       observe({print(q$city)})
@@ -348,7 +305,7 @@ shinyServer(function(input, output) {
     } else if ((input$selection == 2) & !is.null(x)) {
       q <- crime %>% filter(code == x[1], year == input$slider[1]) %>% 
         arrange(get(y)) %>% 
-        head(10) %>% 
+        head() %>% 
         mutate(city = str_to_title(city)) %>% 
         group_by(city) %>% summarise() %>% as.list()
       observe({print(q$city)})
@@ -399,18 +356,18 @@ shinyServer(function(input, output) {
   })
   
   
-  leaflet_click <- reactive({
-    
-    click <- input$alternateplot_shape_click
-    if(is.null(click)) return()
-    
-    points <- SpatialPoints(as.data.frame(cbind(click$lng, click$lat)))
-    #https://stackoverflow.com/questions/8751497/latitude-longitude-coordinates-to-state-code-in-r?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
-    proj4string(points) <- proj4string(state_data)
-    result <- as.character(over(points, state_data)$STUSPS)
-    return(c(result, click$lng, click$lat))
-    
-  })
+  # leaflet_click <- reactive({
+  #   
+  #   click <- input$alternateplot_shape_click
+  #   if(is.null(click) | flag) return()
+  #   
+  #   points <- SpatialPoints(as.data.frame(cbind(click$lng, click$lat)))
+  #   #https://stackoverflow.com/questions/8751497/latitude-longitude-coordinates-to-state-code-in-r?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
+  #   proj4string(points) <- proj4string(state_data)
+  #   result <- as.character(over(points, state_data)$STUSPS)
+  #   return(c(result, click$lng, click$lat))
+  #   
+  # })
   
   
   
@@ -457,7 +414,7 @@ shinyServer(function(input, output) {
   
   output$alternateplot <- renderLeaflet({
     
-      leaf_state <- leaflet_click()
+      leaf_state <- crime_switch()
       state <- leaf_state[1]
       long <- as.numeric(leaf_state[2])
       lat <- as.numeric(leaf_state[3])
@@ -471,15 +428,13 @@ shinyServer(function(input, output) {
       #color <- my_colors[as.numeric(radio_data[5])]
       
       if(is.null(leaf_state)) {
-      
-      
-      #custom <- crime %>% filter(year == input$slider[2])
-      
-      #second <- left_join(df, custom, by = c("code", "NAME" = "city"))
+        
+        labels <- sprintf(
+          "<strong>%s</strong><br/>%g Violent crimes<br/>%g Robberies<br/>%g Assaults<br/>%g Rapes<br/>%g Homicides",
+          states_join$NAME, states_join$violent_crime, states_join$rob_sum, states_join$agg_ass_sum, states_join$rape_sum, states_join$homs_sum
+          ) %>% lapply(htmltools::HTML)
       
       state_data@data <- states_join   
-      
-      #neStates <- subset(leaf_data, leaf_data$code == x$code)
       
       pal <- colorNumeric("viridis", NULL)
       
@@ -489,7 +444,11 @@ shinyServer(function(input, output) {
                     opacity = 1.0, fillOpacity = 1,
                     dashArray = "3",
                     fillColor = ~pal(get(y)),
-                    label = ~paste0(NAME,": ", get(y)),
+                    label = labels,
+                    labelOptions = labelOptions(
+                      style = list("font-weight" = "normal", padding = "3px 8px"),
+                      textsize = "15px",
+                      direction = "auto"),
                     highlightOptions = highlightOptions(color = "black", weight = 2,
                                                         bringToFront = TRUE)) %>%
         addLegend(pal = pal, values = ~get(y), title = ~paste0(xtitle), bins = 4, opacity = 1.0, position = "bottomright")
@@ -504,13 +463,24 @@ shinyServer(function(input, output) {
         
         neStates <- subset(leaf_data, leaf_data$code == state)
         
+        leaf_labels <- second %>% filter(code == state)
+        
+        labels <- sprintf(
+          "<strong>%s</strong><br/>%g Violent crimes<br/>%g Robberies<br/>%g Assaults<br/>%g Rapes<br/>%g Homicides",
+          leaf_labels$city, leaf_labels$violent_crime, leaf_labels$rob_sum, leaf_labels$agg_ass_sum, leaf_labels$rape_sum, leaf_labels$homs_sum
+        ) %>% lapply(htmltools::HTML)
+        
         pal <- colorNumeric("viridis", NULL)
         
         leaflet(neStates) %>% addTiles() %>% 
           addPolygons(color = "#444444", weight = 1, smoothFactor = 0.5,
                       opacity = 1.0, fillOpacity = 1,
                       fillColor = ~pal(get(y)),
-                      label = ~paste0(city,": ", get(y)),
+                      label = labels,
+                      labelOptions = labelOptions(
+                        style = list("font-weight" = "normal", padding = "3px 8px"),
+                        textsize = "15px",
+                        direction = "auto"),
                       highlightOptions = highlightOptions(color = "white", weight = 2,
                                                           bringToFront = TRUE)) %>%
           addLegend(pal = pal, values = ~get(y), title = ~paste0(xtitle), bins = 4, opacity = 1.0, position = "bottomright")
@@ -520,6 +490,5 @@ shinyServer(function(input, output) {
       
   })
   
-
   
 })

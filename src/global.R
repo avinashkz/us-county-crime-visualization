@@ -53,3 +53,4 @@ crime_inter <- crime %>% group_by(code) %>% summarise(violent_crime = sum(violen
 states_join <- left_join(states_inter, crime_inter, by = c("STUSPS" = "code")) #%>% View()
 
 
+prev <- 0

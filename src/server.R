@@ -24,28 +24,28 @@ shinyServer(function(input, output) {
       color <- 1
     }
     else if(input$radio == "rape") {
-      xtitle <- "Rapes"
+      xtitle <- "Rape"
       title <- "Rape Trend In"
       y <- "rape_sum"
       q <- "rape"
       color <- 2
     }
     else if(input$radio == "assault") {
-      xtitle <- "Assaults"
+      xtitle <- "Assault"
       title <- "Assault Trend In"
       y <- "agg_ass_sum"
       q <- "assault"
       color <- 4
     }
     else if(input$radio == "homicide") {
-      xtitle <- "Homicides"
+      xtitle <- "Homicide"
       title <- "Homicide Trend In"
       y <- "homs_sum"
       q <- "homicide"
       color <- 5
     }
     else if(input$radio == "robbery") {
-      xtitle <- "Robberies"
+      xtitle <- "Robbery"
       title <- "Robbery Trend In"
       y <- "rob_sum"
       q <- "robbery"
@@ -507,12 +507,16 @@ shinyServer(function(input, output) {
       long <- as.numeric(leaf_state[2])
       lat <- as.numeric(leaf_state[3])
       
+      
+      radio_data <- get_radio()
+      xtitle <- radio_data[1]
+      title <- radio_data[2]
+      y <- radio_data[3]
+      #q <- radio_data[4]
+      #color <- my_colors[as.numeric(radio_data[5])]
+      
       if(is.null(leaf_state)) {
       
-    
-      y <- "violent_crime"
-      
-      xtitle <- "Violent Crime"
       
       #custom <- crime %>% filter(year == input$slider[2])
       
@@ -536,10 +540,6 @@ shinyServer(function(input, output) {
         addLegend(pal = pal, values = ~get(y), title = ~paste0(xtitle), bins = 4, opacity = 1.0, position = "bottomright")
 
       } else{
-        
-        y <- "violent_crime"
-        
-        xtitle <- "Violent Crime"
         
         custom <- crime %>% filter(year == input$slider[2])
         

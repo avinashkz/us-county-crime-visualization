@@ -61,7 +61,8 @@ df_2 <- inner_join(counties, df_2, by = c("region" = "region", "subregion" = "ci
 
 df_2$region <- stringi::stri_trans_totitle(df_2$region)
 
-df_2 <- df_2 %>% mutate(year = year)
+df_2 <- df_2 %>% mutate(year = year) %>% rowwise() %>% 
+          mutate(violent_crime = sum(homs_sum, rob_sum, agg_ass_sum, rape_sum, na.rm = TRUE))
 
 names(df_2)[2] <- "city"
 
@@ -71,11 +72,71 @@ return(df_2)
 
 }
 
+
+```
+
+
+```{r}
+
+year <-  2008
+
+cleaner_new <- function(year){
+
+df <- read.csv(paste("../data/csv/",year ,".csv",sep = ""), header = FALSE)
+
+names(df) <- c("region", "city", "violent_crime", "homs_sum", "rape_sum", "rob_sum", "agg_ass_sum", "PropertyCrime", "Burglary", "Larceny", "MotorVehicleTheft", "Arson")
+
+if(year == 2011) {
+  df <- df[1:12]
+}
+
+df_1 <- df %>% separate(region, into = c("region", "type"), sep = "")
+
+
+for (i in 1:nrow(df_1)){
+if(df_1[i,1] == ""){
+  df_1[i,1] <-  df_1[i-1,1]
+}
+if(is.na(df_1[i,2])){
+  df_1[i,2] <-  df_1[i-1,2]
+}}
+
+df_1$city <- gsub('[[:digit:]]+', '', df_1$city)
+df_1$city <- gsub(', ', '', df_1$city)
+df_1$type <- gsub('[[:digit:]]+', '', df_1$type)
+df_1$region <- stringi::stri_trans_tolower(df_1$region)
+df_1$city <- stringi::stri_trans_tolower(df_1$city)
+
+#df_2 <- df_1 %>% select(c(1:5, 8:15))
+
+df_2 <- inner_join(counties, df_1, by = c("region" = "region", "subregion" = "city"))
+
+df_2$region <- stringi::stri_trans_totitle(df_2$region)
+
+df_2 <- df_2 %>% mutate(year = year) %>% rowwise() %>% 
+          mutate(violent_crime = sum(homs_sum, rob_sum, agg_ass_sum, rape_sum, na.rm = TRUE))
+
+names(df_2)[2] <- "city"
+
+feather::write_feather(df_2, paste("../results/", year, ".feather", sep = ""))
+
+return(df_2)
+
+}
+
+
+#c(2016) %>% map_df(cleaner)
+
 d16 <- cleaner(2016)
 d15 <- cleaner(2015)
 d14 <- cleaner(2014)
+d13 <- cleaner(2013)
+d12 <- cleaner_new(2012)
+d11 <- cleaner_new(2011)
+d10 <- cleaner_new(2010)
+d09 <- cleaner_new(2009)
 
-crime <- rbind(d16,d15,d14)
+crime <- rbind(d16, d15, d14, d13, d12, d11, d10, d09)
 
 codes <- read.csv(file ="../results/codes.csv")
 
@@ -115,7 +176,12 @@ x <- NA
 
 if_else(is.na(x), 2, 3)
 
+df %>% mutate(region = as.character(region)) %>% separate(region, into = c("region", "type"), sep = " - ")
+  
 
+
+df[1:12]
+
 ```
 
 

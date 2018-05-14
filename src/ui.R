@@ -33,8 +33,8 @@ navbarPage("US Crime Visualization",
                                     column(5, 
                                            
                                            radioButtons("selection", h3("Ranking"), 
-                                                        choices = list("Top 10" = 1, "Bottom 10" = 2,
-                                                                       "All" = 3), inline = TRUE, selected = 1),
+                                                        choices = list("Top 10" = 1, "Bottom 10" = 2),
+                                                        inline = TRUE, selected = 1),
                                            
                                            sliderInput("slider", h3("Filter Year", id = "myh3"), 
                                                        min = 2009, max = 2016, value = c(2009, 2016), sep = "")

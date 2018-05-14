@@ -358,13 +358,6 @@ shinyServer(function(input, output) {
         sort(all_cities$city),
         selected = c(q$city),
         multiple = TRUE)
-    } else if (!is.null(x)) {
-      selectInput(
-        "cityInput",
-        h3("Cities Selected"),
-        sort(all_cities$city),
-        selected = all_cities$city,
-        multiple = TRUE)
     }
     
   })

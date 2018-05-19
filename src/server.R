@@ -287,15 +287,13 @@ shinyServer(function(input, output) {
       mutate(city = str_to_title(city)) %>% 
       group_by(city) %>% summarise() %>% as.list()
   
-    
-    #observe({print(x[1])})
+
     if ((input$selection == 1) & !is.null(x)) {
       q <- crime %>% filter(code == x[1], year == input$slider[1]) %>%
         arrange(get(y)) %>% 
         tail() %>% 
         mutate(city = str_to_title(city)) %>% 
         group_by(city) %>% summarise() %>% as.list()
-      observe({print(q$city)})
       selectInput(
         "cityInput",
         h3("Cities Selected"),
@@ -308,7 +306,6 @@ shinyServer(function(input, output) {
         head() %>% 
         mutate(city = str_to_title(city)) %>% 
         group_by(city) %>% summarise() %>% as.list()
-      observe({print(q$city)})
       selectInput(
         "cityInput",
         h3("Cities Selected"),

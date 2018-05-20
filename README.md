@@ -4,7 +4,7 @@ Testing of specific Identity and Access Management (IAM) \& Global Information S
 
 ## About the application
 
-The US County Crime Visualization app is developed as an extension to US Crime Visualization Application I developed earlier.
+The US County Crime Visualization app is developed as an extension to [US Crime Visualization](https://github.com/avinashkz/crime_shiny_app) Application.
 
 Following are the changes I have made in this version:
 

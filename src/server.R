@@ -1,15 +1,3 @@
-library(shiny)
-library(plotly)
-library(tidyverse)
-library(shinycssloaders)
-library(DT)
-library(shinydashboard)
-library(shinyjs)
-library(feather)
-library(rgdal)
-library(readr)
-library(shinyjs)
-
 shinyServer(function(input, output) {
   
   
@@ -283,9 +271,11 @@ shinyServer(function(input, output) {
     radio_data <- get_radio()
     y <- radio_data[3]
     
+    if(!is.null(x)) {
     all_cities <- crime %>% filter(code == x[1], year == input$slider[1]) %>%
       mutate(city = str_to_title(city)) %>% 
       group_by(city) %>% summarise() %>% as.list()
+  }
   
 
     if ((input$selection == 1) & !is.null(x)) {
@@ -346,13 +336,13 @@ shinyServer(function(input, output) {
                   ))
   })
   
-  
-  output$menuitem <- renderMenu({
-    #For rendering the tabs of shiny dashboard
-    menuItem("Menu item", icon = icon("calendar"))
-  })
-  
-  
+  # 
+  # output$menuitem <- renderMenu({
+  #   #For rendering the tabs of shiny dashboard
+  #   menuItem("Menu item", icon = icon("calendar"))
+  # })
+  # 
+  # 
   # leaflet_click <- reactive({
   #   
   #   click <- input$alternateplot_shape_click

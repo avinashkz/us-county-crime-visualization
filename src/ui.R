@@ -6,11 +6,6 @@
 # 
 #    http://shiny.rstudio.com/
 #
-library(shiny)
-library(markdown)
-library(DT)
-library(plotly)
-library(shinyjs)
 
 navbarPage("US Crime Visualization",
            tabPanel("Dashboard",

@@ -1,14 +1,21 @@
 library(tidyr)
 library(dplyr)
+library(feather)
+library(readr)
+library(rgdal)
 library(forcats)
 library(purrr)
-library(feather)
-library(rgdal)
-library(readr)
 library(shiny)
+library(shinyjs)
+library(DT)
+library(plotly)
 library(leaflet)
+library(stringr)
+library(V8)
+#library(shinydashboard)
 
-crime <- read_feather("../results/crime.feather")
+
+crime <- read_feather("crime.feather")
 
 crime <- crime %>% mutate(violent_crime = as.numeric(violent_crime),
                           agg_ass_sum = as.numeric(agg_ass_sum),
@@ -16,9 +23,9 @@ crime <- crime %>% mutate(violent_crime = as.numeric(violent_crime),
                           rob_sum = as.numeric(rob_sum),
                           homs_sum = as.numeric(homs_sum))
 
-geocode <- read_csv("../data/geocode.csv")
+geocode <- read_csv("geocode.csv")
 
-leaf_data <- readOGR("../data/shc/cb_2016_us_county_20m.shp",
+leaf_data <- readOGR("shc/cb_2016_us_county_20m.shp",
                     layer = "cb_2016_us_county_20m", GDAL1_integer64_policy = TRUE)
 
 #geodata <- leaf_data@data
@@ -32,14 +39,10 @@ df <- first %>% mutate(NAME = stringi::stri_trans_tolower(NAME))
 state_list <- crime$State %>% unique()
 
 names(state_list) <- NULL
-#county_list <-
 
 year_list <- crime$Year %>% unique()
 
-
-###
-
-state_data <- readOGR("../data/shp/cb_2016_us_state_20m.shp",
+state_data <- readOGR("shp/cb_2016_us_state_20m.shp",
                          layer = "cb_2016_us_state_20m", GDAL1_integer64_policy = TRUE)
 
 states_inter <- state_data@data %>% mutate(GEOID = as.numeric(as.character(GEOID)))

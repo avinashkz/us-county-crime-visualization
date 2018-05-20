@@ -1,0 +1,13 @@
+name: CrimeVisualizationUS
+title: CrimeVisualizationUS
+username:
+account: avinashkz
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 345744
+bundleId: 1382845
+url: https://avinashkz.shinyapps.io/CrimeVisualizationUS/
+when: 1526805771.40646
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: wrangle.Rmd

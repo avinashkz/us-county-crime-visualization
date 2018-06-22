@@ -1,4 +1,4 @@
-Testing of specific Identity and Access Management (IAM) \& Global Information Security (GIS) p# US County Crime Visualization
+# US County Crime Visualization
 
 **Shiny Application** ->  https://avinashkz.shinyapps.io/CrimeVisualizationUS/
 
